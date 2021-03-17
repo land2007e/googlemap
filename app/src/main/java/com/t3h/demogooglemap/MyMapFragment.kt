@@ -1,5 +1,6 @@
 package com.t3h.demogooglemap
 
+import android.Manifest
 import android.graphics.Color
 import android.location.Geocoder
 import android.location.Location
@@ -13,6 +14,7 @@ import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.*
+import java.lang.Exception
 
 
 class MyMapFragment : SupportMapFragment(), OnMapReadyCallback,
@@ -47,9 +49,21 @@ class MyMapFragment : SupportMapFragment(), OnMapReadyCallback,
         map.uiSettings.isScrollGesturesEnabled = true
 
         map.uiSettings.setAllGesturesEnabled(true)
+
+        //check permission
+        val permissions = mutableListOf<String>()
+        permissions.add(
+            Manifest.permission.ACCESS_FINE_LOCATION
+        )
+        if ( PermissionUtils.checkPermission(context!!, permissions)){
+            applyChangeLocation()
+        }else {
+            PermissionUtils.showDialogPermission(activity!!, permissions, 100)
+        }
+    }
+
+    fun applyChangeLocation(){
         map.isMyLocationEnabled = true
-
-
         val callback = object : LocationCallback() {
             override fun onLocationResult(result: LocationResult) {
                 Log.d("MyMapFragment", "onLocationResult result............")
@@ -67,7 +81,6 @@ class MyMapFragment : SupportMapFragment(), OnMapReadyCallback,
 //                Looper.getMainLooper()
 //            )
         map.setOnMyLocationChangeListener(this)
-
     }
 
     private fun updateLocation(location: Location) {
@@ -141,17 +154,22 @@ class MyMapFragment : SupportMapFragment(), OnMapReadyCallback,
 
     private fun getLocationString(lat: Double, log: Double): String {
         val geo = Geocoder(context)
-        val addresss = geo.getFromLocation(lat, log, 1)
-        if (addresss == null || addresss.size == 0) {
+        try {
+            val addresss = geo.getFromLocation(lat, log, 1)
+            if (addresss == null || addresss.size == 0) {
+                return "Unknow"
+            }
+            val add = addresss.get(0)
+            var addString = add.getAddressLine(0)
+            for (i in 1..add.maxAddressLineIndex - 1) {
+                addString += (", " + add.getAddressLine(i))
+            }
+            addString += ", " + add.countryName
+            return addString
+        }catch (e :Exception){
             return "Unknow"
         }
-        val add = addresss.get(0)
-        var addString = add.getAddressLine(0)
-        for (i in 1..add.maxAddressLineIndex - 1) {
-            addString += (", " + add.getAddressLine(i))
-        }
-        addString += ", " + add.countryName
-        return addString
+
     }
 
     override fun onMyLocationChange(p0: Location) {
